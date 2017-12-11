@@ -126,31 +126,31 @@ open class MessageLabel: UILabel {
         }
     }
 
-    open var addressAttributes: [NSAttributedStringKey: Any] = [:] {
-        didSet {
-            updateAttributes(for: .address)
-            if !isConfiguring { setNeedsDisplay() }
-        }
-    }
+    private var attributesNeedUpdate = false
 
-    open var dateAttributes: [NSAttributedStringKey: Any] = [:] {
-        didSet {
-            updateAttributes(for: .date)
-            if !isConfiguring { setNeedsDisplay() }
-        }
-    }
+    open private(set) var addressAttributes: [NSAttributedStringKey: Any] = [:]
 
-    open var phoneNumberAttributes: [NSAttributedStringKey: Any] = [:] {
-        didSet {
-            updateAttributes(for: .phoneNumber)
-            if !isConfiguring { setNeedsDisplay() }
-        }
-    }
+    open private(set) var dateAttributes: [NSAttributedStringKey: Any] = [:]
 
-    open var urlAttributes: [NSAttributedStringKey: Any] = [:] {
-        didSet {
-            updateAttributes(for: .url)
-            if !isConfiguring { setNeedsDisplay() }
+    open private(set) var phoneNumberAttributes: [NSAttributedStringKey: Any] = [:]
+
+    open private(set) var urlAttributes: [NSAttributedStringKey: Any] = [:]
+
+    func setAttributes(_ attributes: [NSAttributedStringKey: Any], detector: DetectorType) {
+        if !isConfiguring {
+            switch detector {
+            case .phoneNumber:
+                phoneNumberAttributes = attributes
+            case .address:
+                addressAttributes = attributes
+            case .date:
+                dateAttributes = attributes
+            case .url:
+                urlAttributes = attributes
+            }
+            updateAttributes(for: [detector])
+        } else {
+            attributesNeedUpdate = true
         }
     }
 
@@ -199,6 +199,10 @@ open class MessageLabel: UILabel {
     public func configure(block: () -> Void) {
         isConfiguring = true
         block()
+        if attributesNeedUpdate {
+            updateAttributes(for: enabledDetectors)
+        }
+        attributesNeedUpdate = false
         isConfiguring = false
         setNeedsDisplay()
     }
@@ -254,21 +258,22 @@ open class MessageLabel: UILabel {
         return style
     }
 
-    private func updateAttributes(for detectorType: DetectorType) {
+    private func updateAttributes(for detectors: [DetectorType]) {
 
         guard let attributedText = attributedText, attributedText.length > 0 else { return }
         let mutableAttributedString = NSMutableAttributedString(attributedString: attributedText)
 
-        guard let rangeTuples = rangesForDetectors[detectorType] else { return }
+        for detector in detectors {
+            guard let rangeTuples = rangesForDetectors[detector] else { return }
 
-        for (range, _)  in rangeTuples {
-            let attributes = detectorAttributes(for: detectorType)
-            mutableAttributedString.addAttributes(attributes, range: range)
+            for (range, _)  in rangeTuples {
+                let attributes = detectorAttributes(for: detector)
+                mutableAttributedString.addAttributes(attributes, range: range)
+            }
+
+            let updatedString = NSAttributedString(attributedString: mutableAttributedString)
+            textStorage.setAttributedString(updatedString)
         }
-
-        let updatedString = NSAttributedString(attributedString: mutableAttributedString)
-        textStorage.setAttributedString(updatedString)
-
     }
 
     private func detectorAttributes(for detectorType: DetectorType) -> [NSAttributedStringKey: Any] {

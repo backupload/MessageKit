@@ -110,6 +110,8 @@ public protocol MessagesDisplayDelegate: AnyObject {
     /// The default value returned by this method is all available detector types.
     func enabledDetectors(for message: MessageType, at indexPath: IndexPath, in messagesCollectionView: MessagesCollectionView) -> [DetectorType]
 
+    func detectorAttributes(for message: MessageType, at indexPath: IndexPath) -> [DetectorType: [NSAttributedStringKey: Any]]
+
     // MARK: - Location Messages
 
     /// Ask the delegate for a LocationMessageSnapshotOptions instance to customize the MapView on the given message
@@ -194,6 +196,10 @@ public extension MessagesDisplayDelegate {
 
     func enabledDetectors(for message: MessageType, at indexPath: IndexPath, in messagesCollectionView: MessagesCollectionView) -> [DetectorType] {
         return []
+    }
+
+    func detectorAttributes(for message: MessageType, at indexPath: IndexPath) -> [DetectorType: [NSAttributedStringKey: Any]] {
+        return [:]
     }
 
     // MARK: - Location Messages Defaults
